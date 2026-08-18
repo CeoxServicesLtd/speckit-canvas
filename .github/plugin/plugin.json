@@ -1,0 +1,25 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "speckit-canvas",
+  "description": "Browse spec-kit features, see each spec's pipeline status and attention items, and dispatch the next speckit agent from a Copilot canvas.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Ceox Services Ltd",
+    "url": "https://github.com/CeoxServicesLtd"
+  },
+  "keywords": [
+    "spec-kit",
+    "canvas",
+    "copilot-extension",
+    "spec-driven",
+    "planning",
+    "agents"
+  ],
+  "repository": "https://github.com/CeoxServicesLtd/speckit-canvas",
+  "license": "MIT",
+  "extensions": {
+    "com.github.copilot": {
+      "logo": "assets/preview.png"
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "speckit-canvas",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "extension.mjs",
+  "dependencies": {
+    "@github/copilot-sdk": "latest"
+  },
+  "description": "Browse spec-kit features, see each spec's pipeline status and attention items, and dispatch the next speckit agent from a Copilot canvas.",
+  "keywords": [
+    "spec-kit",
+    "canvas",
+    "copilot-extension",
+    "spec-driven",
+    "planning",
+    "agents"
+  ]
+}
