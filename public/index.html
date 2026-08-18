@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <title>Spec-kit board</title>
+        <link rel="icon" href="data:," />
+        <link rel="stylesheet" href="/styles.css" />
+    </head>
+    <body>
+        <div class="app" id="app">
+            <aside class="sidebar" id="sidebar">
+                <div class="sidebar__head">
+                    <span class="sidebar__title">Features</span>
+                    <div class="sidebar__tools">
+                        <button class="icon-btn" id="toggle-search" type="button" aria-label="Search features" aria-pressed="false">
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="7" cy="7" r="4.25" /><path d="M10.2 10.2 14 14" /></svg>
+                        </button>
+                        <button class="icon-btn" id="toggle-filter" type="button" aria-label="Filter features" aria-pressed="false">
+                            <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M2 3.5h12M4.5 8h7M7 12.5h2" /></svg>
+                        </button>
+                        <span class="count" id="feature-count">0</span>
+                    </div>
+                </div>
+
+                <div class="sidebar__search" id="search-row" hidden>
+                    <input id="search" type="search" placeholder="Filter by name or status" autocomplete="off" />
+                </div>
+
+                <div class="sidebar__filters" id="filter-row" hidden role="group" aria-label="Status filter"></div>
+
+                <section class="rollup" id="rollup" aria-label="Portfolio summary"></section>
+
+                <ul class="feature-list" id="feature-list"></ul>
+
+                <div class="sidebar__foot">
+                    <button class="link-btn" id="new-feature" type="button">
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" /></svg>
+                        New feature spec
+                    </button>
+                    <img class="sidebar__logo" src="/assets/ceox-logo.jpg" alt="Ceox" />
+                </div>
+            </aside>
+
+            <main class="detail" id="detail">
+                <div class="empty" id="empty">Loading spec-kit features…</div>
+            </main>
+        </div>
+
+        <div class="runner" id="runner" hidden>
+            <div class="runner__scrim" data-close="1"></div>
+            <div class="runner__panel" role="dialog" aria-modal="true" aria-labelledby="runner-title">
+                <div class="runner__head">
+                    <h2 id="runner-title">Run agent</h2>
+                    <button class="icon-btn" id="runner-close" type="button" aria-label="Close">
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 4l8 8M12 4l-8 8" /></svg>
+                    </button>
+                </div>
+                <div class="runner__body" id="runner-body"></div>
+                <div class="runner__foot">
+                    <span class="runner__hint" id="runner-hint"></span>
+                    <button class="btn" id="runner-cancel" type="button">Cancel</button>
+                    <button class="btn btn--primary" id="runner-go" type="button">Run agent</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+        <script src="/app.js" type="module"></script>
+    </body>
+</html>
