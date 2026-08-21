@@ -17,13 +17,13 @@ Everything shown is derived from files on disk — no invented metrics.
 
 ## Files
 
-- `extension.mjs` — loopback canvas server, API routes, SSE, file watching, and the session bridge.
-- `speckit.mjs` — the scanner: parses specs/tasks/checklists, derives status, health, phases, and attention items.
-- `public/` — the canvas UI (`index.html`, `styles.css`, `app.js`).
+- `plugin.json` — plugin manifest used by the extension marketplace and website.
 - `assets/preview.png` — gallery preview image.
-- `copilot-extension.json` — Copilot extension name/version metadata.
-- `package.json` — extension metadata for cataloging and packaging.
-- `.github/plugin/plugin.json` — plugin metadata used by the extension marketplace and website.
+- `extensions/speckit-canvas/extension.mjs` — loopback canvas server, API routes, SSE, file watching, and the session bridge.
+- `extensions/speckit-canvas/speckit.mjs` — the scanner: parses specs/tasks/checklists, derives status, health, phases, and attention items.
+- `extensions/speckit-canvas/public/` — the canvas UI (`index.html`, `styles.css`, `app.js`).
+- `extensions/speckit-canvas/copilot-extension.json` — Copilot extension name/version metadata.
+- `extensions/speckit-canvas/package.json` — extension metadata for cataloging and packaging.
 
 ## Install
 

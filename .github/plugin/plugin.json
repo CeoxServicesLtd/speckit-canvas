@@ -16,7 +16,7 @@
     "agents"
   ],
   "repository": "https://github.com/CeoxServicesLtd/speckit-canvas",
-  "license": "MIT",  
-  "logo": "assets/preview.png"
-  }
+  "license": "MIT",
+  "logo": "assets/preview.png",
+  "extensions": "extensions"
 }
