@@ -1,0 +1,18 @@
+{
+  "name": "ceox-speckit",
+  "owner": {
+    "name": "Ceox Services Ltd"
+  },
+  "metadata": {
+    "description": "Ceox Spec-kit Canvas plugins for the GitHub Copilot app.",
+    "version": "1.1.0"
+  },
+  "plugins": [
+    {
+      "name": "speckit-canvas",
+      "description": "Browse spec-kit features, pipeline status, artifacts and the repository constitution in a Copilot canvas.",
+      "version": "1.1.0",
+      "source": "./"
+    }
+  ]
+}

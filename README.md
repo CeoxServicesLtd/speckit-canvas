@@ -19,6 +19,7 @@ Everything shown is derived from files on disk — no invented metrics.
 ## Files
 
 - `plugin.json` — plugin manifest used by the extension marketplace and website.
+- `.github/plugin/marketplace.json` — marketplace catalog for discovering and installing the plugin in Copilot.
 - `assets/preview.png` — gallery preview image.
 - `extensions/speckit-canvas/extension.mjs` — loopback canvas server, API routes, SSE, file watching, and the session bridge.
 - `extensions/speckit-canvas/speckit.mjs` — the scanner: parses specs/tasks/checklists, derives status, health, phases, and attention items.
@@ -28,18 +29,61 @@ Everything shown is derived from files on disk — no invented metrics.
 
 ## Install
 
-Ask Copilot to install the committed extension URL:
+### GitHub Copilot app (recommended)
 
-```text
-Install this extension: https://github.com/CeoxServicesLtd/speckit-canvas
+Register the marketplace and install the plugin using the Copilot CLI with the same user/configuration as the app:
+
+```powershell
+copilot plugin marketplace add CeoxServicesLtd/speckit-canvas
+copilot plugin install speckit-canvas@ceox-speckit
 ```
 
-Or copy this folder into one of these locations:
+The registered marketplace can then be browsed in the app's **Customize → Plugins** view. This installs the canvas as a managed plugin rather than copying a standalone extension.
 
-- `~/.copilot/extensions/speckit-canvas/` — user scope
-- `.github/extensions/speckit-canvas/` — project scope
+Restart the app/session or reload extensions, then open **Spec-kit board** (canvas ID `speckit-canvas`).
 
-Reload extensions in the app, then open the `speckit-canvas` canvas.
+If you previously installed a standalone copy under `~/.copilot/extensions/speckit-board/`, `~/.copilot/extensions/speckit-canvas/`, or `.github/extensions/`, move that specific extension folder outside the extensions directory after installing the plugin. Keep a backup until the plugin works. Do not leave both copies enabled: they register the same board. This migration does not change your repository's specs or constitution.
+
+### Direct repository installation
+
+If you do not need marketplace discovery:
+
+```powershell
+copilot plugin install CeoxServicesLtd/speckit-canvas
+```
+
+Use either the marketplace installation or the direct installation, not both.
+
+## Updates and releases
+
+For a marketplace installation:
+
+```powershell
+copilot plugin marketplace update ceox-speckit
+copilot plugin update speckit-canvas@ceox-speckit
+```
+
+For a direct installation, use `copilot plugin update speckit-canvas`. Restart the app/session or reload extensions and reopen the board after an update.
+
+The catalog's relative source tracks the repository's default branch. Publishing a GitHub release by itself does not deploy the plugin: commit and push the plugin files and version metadata to that branch first. For each release, keep `plugin.json`, `.github/plugin/marketplace.json` (catalog and plugin entry), and `extensions/speckit-canvas/package.json` versions in sync. The numeric `version` in `copilot-extension.json` is extension metadata, not the plugin's semantic release version.
+
+Copilot CLI supports opting a custom marketplace into session-start updates through `autoUpdate: true` on its `extraKnownMarketplaces` entry in user settings. This applies to interactive and `-p` sessions, not SDK/server sessions; do not assume the Copilot app automatically updates this plugin. Use the explicit update commands above when needed. See the [plugin reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference).
+
+## Plugin packaging and development
+
+This is a **legacy Copilot plugin** intentionally: its root manifest omits the Agent Plugins `$schema` and uses `"extensions": "extensions"` to discover the existing canvas extension. In Agent Plugins 1.0, `extensions` instead means a namespaced metadata object, so adding that schema without migrating the component layout would break discovery. No separate npm installation or build is required; Copilot supplies the extension SDK.
+
+To inspect the local checkout without installing it:
+
+```powershell
+copilot --plugin-dir . plugin list
+```
+
+Run the regression and packaging checks:
+
+```powershell
+node --test extensions\speckit-canvas\tests\*.test.mjs
+```
 
 ## Usage
 
