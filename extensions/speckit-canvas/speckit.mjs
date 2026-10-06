@@ -671,3 +671,13 @@ export function readFeatureFile(repoRoot, featureName, relPath) {
     if (content === null) return null;
     return { path: relative(featureDir, target).split(sep).join("/"), content };
 }
+
+export function readConstitutionFile(repoRoot) {
+    const path = join(".specify", "memory", "constitution.md");
+    try {
+        return { path: path.split(sep).join("/"), content: readFileSync(join(repoRoot, path), "utf-8") };
+    } catch (error) {
+        if (error.code === "ENOENT" || error.code === "ENOTDIR") return null;
+        throw error;
+    }
+}

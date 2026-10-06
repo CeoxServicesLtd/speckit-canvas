@@ -358,6 +358,23 @@ button {
     color: var(--sk-muted);
 }
 
+.sidebar__global {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 16px;
+    border-top: 1px solid var(--sk-border);
+}
+
+.sidebar__global .btn {
+    justify-content: flex-start;
+}
+
+.sidebar__global .btn[aria-pressed="true"] {
+    background: var(--sk-blue-soft);
+    color: var(--sk-blue);
+}
+
 .sidebar__foot {
     display: flex;
     align-items: center;

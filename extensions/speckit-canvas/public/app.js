@@ -18,6 +18,7 @@ const els = {
     toggleSearch: document.getElementById("toggle-search"),
     toggleFilter: document.getElementById("toggle-filter"),
     newFeature: document.getElementById("new-feature"),
+    constitution: document.getElementById("constitution"),
     runner: document.getElementById("runner"),
     runnerBody: document.getElementById("runner-body"),
     runnerHint: document.getElementById("runner-hint"),
@@ -43,6 +44,8 @@ const state = {
     data: null,
     selected: null,
     tab: "overview",
+    view: "feature",
+    constitution: { content: null, error: null, missing: false, request: 0 },
     filter: "all",
     search: "",
     openFile: null,
@@ -103,7 +106,7 @@ function toast(message, kind) {
 async function api(path, options) {
     const res = await fetch(path, options);
     const body = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(body.error || `Request failed (${res.status})`);
+    if (!res.ok) throw Object.assign(new Error(body.error || `Request failed (${res.status})`), { status: res.status });
     return body;
 }
 
@@ -296,7 +299,7 @@ function renderSidebar() {
             const isActive = state.data.activeFeature === f.name;
             const counts = f.tasks.total > 0 ? ` · ${f.tasks.done}/${f.tasks.total}` : "";
             return `<li>
-                <button class="feature-card" type="button" data-feature="${esc(f.name)}" aria-current="${state.selected === f.name}">
+                <button class="feature-card" type="button" data-feature="${esc(f.name)}" aria-current="${state.view === "feature" && state.selected === f.name}">
                     <span class="feature-card__head">
                         <span class="feature-card__num">${esc(f.number ?? "—")}</span>
                         <span class="feature-card__name">${esc(f.displayName)}</span>
@@ -614,7 +617,42 @@ function renderChecklists(f) {
         .join("");
 }
 
+function renderConstitution() {
+    const constitution = state.constitution;
+    const missing = !state.data.constitution?.exists || constitution.missing;
+    const content = constitution.error
+        ? `<p class="tone-error" role="alert">Could not read the constitution: ${esc(constitution.error)}</p>`
+        : missing
+          ? "<p>Constitution not found. The repository constitution belongs in <code>.specify/memory/constitution.md</code>.</p>"
+          : constitution.content === null
+            ? "<p>Loading constitution...</p>"
+            : renderMarkdown(constitution.content);
+    return `
+        <div class="detail__head">
+            <div class="detail__titlerow">
+                <h1 class="detail__title">Constitution</h1>
+                <div class="detail__headactions">
+                    <button class="btn" id="refresh" type="button">${icons.refresh} Refresh</button>
+                    <button class="btn btn--ghost" type="button" data-constitution-close="1">Back to features</button>
+                </div>
+            </div>
+            <div class="detail__meta">Repository-wide principles</div>
+        </div>
+        <div class="detail__body" data-constitution-view="1">
+            <div class="card"><div class="viewer">
+                <div class="viewer__head"><span class="viewer__path">.specify/memory/constitution.md</span></div>
+                <div class="md">${content}</div>
+            </div></div>
+        </div>`;
+}
+
 function renderDetail() {
+    if (state.view === "constitution") {
+        const scrollTop = els.detail.querySelector("[data-constitution-view]")?.scrollTop ?? 0;
+        els.detail.innerHTML = renderConstitution();
+        els.detail.querySelector(".detail__body").scrollTop = scrollTop;
+        return;
+    }
     const f = displayedFeature();
     if (!f) {
         els.detail.innerHTML = `<div class="empty">${
@@ -651,6 +689,7 @@ function renderDetail() {
 
 function render() {
     if (!state.data) return;
+    els.constitution.setAttribute("aria-pressed", String(state.view === "constitution"));
     renderRollup();
     renderFilters();
     renderSidebar();
@@ -710,6 +749,7 @@ async function dispatchRun() {
 // ------------------------------------------------------------------ actions
 
 async function selectFeature(name) {
+    state.view = "feature";
     state.selected = name;
     state.openFile = null;
     render();
@@ -722,6 +762,34 @@ async function selectFeature(name) {
     } catch {
         /* remembering the selection is best-effort */
     }
+}
+
+async function loadConstitution() {
+    const request = ++state.constitution.request;
+    state.constitution.error = null;
+    state.constitution.missing = false;
+    if (!state.data.constitution?.exists) {
+        state.constitution.content = null;
+        render();
+        return;
+    }
+    try {
+        const result = await api("/api/constitution");
+        if (request !== state.constitution.request) return;
+        state.constitution.content = result.content;
+    } catch (error) {
+        if (request !== state.constitution.request) return;
+        state.constitution.content = null;
+        if (error.status === 404) state.constitution.missing = true;
+        else state.constitution.error = error.message;
+    }
+    if (state.view === "constitution") render();
+}
+
+function closeConstitution() {
+    state.view = "feature";
+    render();
+    els.constitution.focus();
 }
 
 async function openFile(path) {
@@ -824,8 +892,24 @@ els.newFeature.addEventListener("click", () => {
     openRunner("speckit.specify");
 });
 
+els.constitution.addEventListener("click", () => {
+    if (!state.data) return;
+    state.view = "constitution";
+    state.menuOpen = false;
+    state.constitution.content = null;
+    state.constitution.error = null;
+    state.constitution.missing = false;
+    render();
+    void loadConstitution();
+});
+
 els.detail.addEventListener("click", (event) => {
     const target = event.target;
+
+    if (target.closest("[data-constitution-close]")) {
+        closeConstitution();
+        return;
+    }
 
     const tab = target.closest("[data-tab]");
     if (tab) {
@@ -932,6 +1016,7 @@ document.addEventListener("keydown", (event) => {
             state.menuOpen = false;
             render();
         }
+        else if (state.view === "constitution") closeConstitution();
         return;
     }
     if (event.key === "Enter" && (event.metaKey || event.ctrlKey) && !els.runner.hidden) {
@@ -988,6 +1073,7 @@ function applyState(data) {
     }
 
     render();
+    if (state.view === "constitution") void loadConstitution();
     if (previous && state.openFile) void loadFile(state.openFile, true);
 }
 
@@ -1005,6 +1091,7 @@ function connect() {
     source.addEventListener("focus", (event) => {
         const { feature } = JSON.parse(event.data);
         if (feature) {
+            state.view = "feature";
             state.selected = feature;
             state.openFile = null;
             render();

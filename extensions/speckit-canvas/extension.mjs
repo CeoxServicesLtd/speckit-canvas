@@ -15,7 +15,7 @@ import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 
 import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/extension";
-import { findRepoRoot, readFeatureFile, scanRepo, setActiveFeature } from "./speckit.mjs";
+import { findRepoRoot, readConstitutionFile, readFeatureFile, scanRepo, setActiveFeature } from "./speckit.mjs";
 
 const EXTENSION_DIR = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(EXTENSION_DIR, "public");
@@ -197,6 +197,12 @@ function createRequestHandler(instance, session) {
                 state.preferredFeature = readPrefs().lastSelected?.[instance.repoRoot] ?? null;
                 state.requestedFeature = instance.requestedFeature ?? null;
                 return sendJson(res, 200, state);
+            }
+
+            if (req.method === "GET" && path === "/api/constitution") {
+                const result = readConstitutionFile(instance.repoRoot);
+                if (!result) return sendJson(res, 404, { error: "Constitution not found" });
+                return sendJson(res, 200, result);
             }
 
             if (req.method === "GET" && path === "/api/file") {
