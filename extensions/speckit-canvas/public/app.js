@@ -5,6 +5,9 @@
 // mutation (select, make active, run an agent) goes back over HTTP to the
 // extension, which is the only thing that can reach the session.
 
+import { parseSpec } from "./spec-parser.js";
+import { createSpecView } from "./spec-view.js";
+
 const els = {
     app: document.getElementById("app"),
     sidebar: document.getElementById("sidebar"),
@@ -35,6 +38,7 @@ const FILTERS = [
 
 const TABS = [
     { id: "overview", label: "Overview" },
+    { id: "spec", label: "Spec" },
     { id: "progress", label: "Progress" },
     { id: "artifacts", label: "Artifacts" },
     { id: "checklists", label: "Checklists" },
@@ -55,6 +59,8 @@ const state = {
     menuOpen: false,
     runner: null,
     lastSync: null,
+    // Structured spec.md reader: view mode, open story, requirement filter, scroll-spy section.
+    spec: { mode: "structured", story: null, reqFilter: "all", section: null, loading: new Set(), failed: new Map() },
 };
 
 // ------------------------------------------------------------------ helpers
@@ -123,6 +129,8 @@ const icons = {
     refresh: '<svg viewBox="0 0 16 16"><path d="M13.4 7a5.5 5.5 0 1 0-.4 3.4"/><path d="M13.6 3.4V7h-3.5"/></svg>',
     copy: '<svg viewBox="0 0 16 16"><rect x="5.5" y="5.5" width="8" height="8" rx="1.8"/><path d="M10.5 5.5v-1a1.8 1.8 0 0 0-1.8-1.8H4.3a1.8 1.8 0 0 0-1.8 1.8v4.4a1.8 1.8 0 0 0 1.8 1.8h1.2"/></svg>',
     chevron: '<svg viewBox="0 0 16 16"><path d="M4.5 6.5 8 10l3.5-3.5"/></svg>',
+    chevronLeft: '<svg viewBox="0 0 16 16"><path d="M9.5 4.5 6 8l3.5 3.5"/></svg>',
+    chevronRight: '<svg viewBox="0 0 16 16"><path d="M6.5 4.5 10 8l-3.5 3.5"/></svg>',
     close: '<svg viewBox="0 0 16 16"><path d="M4.5 4.5l7 7M11.5 4.5l-7 7"/></svg>',
 };
 
@@ -252,6 +260,17 @@ function renderMarkdown(src) {
     return out.join("");
 }
 
+const specView = createSpecView({ esc, inline, renderMarkdown, icons });
+
+/** Parsing is cheap but runs on every render, so memoise on the file text. */
+const parsedSpec = (() => {
+    let last = { text: null, spec: null };
+    return (text) => {
+        if (last.text !== text) last = { text, spec: parseSpec(text) };
+        return last.spec;
+    };
+})();
+
 // ------------------------------------------------------------------ sidebar
 
 function visibleFeatures() {
@@ -339,6 +358,7 @@ function currentFeature() {
 function tabCounts(f) {
     return {
         overview: null,
+        spec: f.spec?.openQuestions || null,
         progress: Math.max(0, f.tasks.total - f.tasks.done) || null,
         artifacts: f.files.length || null,
         checklists: f.checklists.files.length || null,
@@ -617,6 +637,57 @@ function renderChecklists(f) {
         .join("");
 }
 
+function renderSpec(f) {
+    const artifact = f.artifacts.find((a) => a.key === "spec");
+    if (!artifact?.exists) {
+        return `<div class="card"><div class="attn">
+            <span class="attn__main">
+                <span class="attn__title">No spec yet</span>
+                <div class="attn__detail">spec.md captures the user stories, requirements and success criteria for this feature.</div>
+            </span>
+            <span class="attn__action"><button class="btn btn--soft" type="button" data-run="speckit.specify">Write the spec ${icons.arrow}</button></span>
+        </div></div>`;
+    }
+
+    const key = `${f.name}/spec.md`;
+    if (!state.fileCache.has(key)) {
+        if (state.spec.failed.has(key)) {
+            return `<div class="card"><div class="attn"><span class="attn__main">
+                <span class="attn__title tone-error">Couldn't read spec.md</span>
+                <div class="attn__detail">${esc(state.spec.failed.get(key))}</div>
+            </span><span class="attn__action"><button class="btn" id="refresh" type="button">${icons.refresh} Try again</button></span></div></div>`;
+        }
+        void loadFile("spec.md", false, f);
+        return `<div class="spec-loading" role="status">Reading spec.md…</div>`;
+    }
+
+    const text = state.fileCache.get(key);
+    const spec = parsedSpec(text);
+    const structured = state.spec.mode === "structured" && spec.recognised;
+    const toggle = ["structured", "markdown"]
+        .map(
+            (mode) =>
+                `<button type="button" data-spec-mode="${mode}" aria-pressed="${state.spec.mode === mode}">${
+                    mode === "structured" ? "Structured" : "Markdown"
+                }</button>`,
+        )
+        .join("");
+
+    return `<div class="spec">
+        <div class="spec-bar">
+            <span class="viewer__path">${esc(f.dir)}/spec.md</span>
+            <span class="spec-bar__time">Updated ${esc(relTime(artifact.modified))}</span>
+            <div class="seg" role="group" aria-label="Spec view">${toggle}</div>
+        </div>
+        ${
+            state.spec.mode === "structured" && !spec.recognised
+                ? `<p class="spec-note">This spec doesn't use the spec-kit section headings, so it's shown as written.</p>`
+                : ""
+        }
+        ${structured ? specView.render(spec, state.spec) : `<div class="md spec-raw">${renderMarkdown(text)}</div>`}
+    </div>`;
+}
+
 function renderConstitution() {
     const constitution = state.constitution;
     const missing = !state.data.constitution?.exists || constitution.missing;
@@ -664,7 +735,9 @@ function renderDetail() {
     }
 
     const body =
-        state.tab === "progress"
+        state.tab === "spec"
+            ? renderSpec(f)
+            : state.tab === "progress"
             ? renderProgress(f)
             : state.tab === "artifacts"
               ? renderArtifacts(f)
@@ -685,6 +758,7 @@ function renderDetail() {
 
     const next = els.detail.querySelector(".detail__body");
     if (next) next.scrollTop = scrollTop;
+    if (next && state.tab === "spec") updateScrollSpy(next);
 }
 
 function render() {
@@ -752,6 +826,8 @@ async function selectFeature(name) {
     state.view = "feature";
     state.selected = name;
     state.openFile = null;
+    state.spec.story = null;
+    state.spec.reqFilter = "all";
     render();
     try {
         await api("/api/select", {
@@ -795,27 +871,137 @@ function closeConstitution() {
 async function openFile(path) {
     const f = currentFeature();
     if (!f) return;
+    if (path === "spec.md") {
+        // spec.md has a dedicated structured reader.
+        state.openFile = null;
+        state.tab = "spec";
+        render();
+        await loadFile(path, false);
+        return;
+    }
     state.openFile = path;
     state.tab = "artifacts";
     render();
     await loadFile(path, false);
 }
 
+// ---------------------------------------------------------------- spec view
+
+const reducedMotion = () => window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+
+function updateScrollSpy(body) {
+    const nav = body.querySelector(".spec-nav");
+    if (!nav || Date.now() < (state.spec.spyHoldUntil ?? 0)) return;
+    const line = body.getBoundingClientRect().top + nav.offsetHeight + 32;
+    const sections = [...body.querySelectorAll("[data-spec-section]")];
+    let current = sections[0]?.id ?? null;
+    for (const sec of sections) {
+        if (sec.getBoundingClientRect().top <= line) current = sec.id;
+        else break;
+    }
+    // At the very bottom the last short section can never reach the line.
+    if (body.scrollTop + body.clientHeight >= body.scrollHeight - 4 && sections.length) current = sections.at(-1).id;
+    setNavCurrent(body, current);
+}
+
+function setNavCurrent(body, current) {
+    const nav = body.querySelector(".spec-nav");
+    if (!nav) return;
+    state.spec.section = current;
+    for (const item of nav.querySelectorAll("[data-xref]")) {
+        const on = item.dataset.xref === current;
+        if (item.getAttribute("aria-current") === String(on)) continue;
+        item.setAttribute("aria-current", String(on));
+        if (on) item.scrollIntoView({ block: "nearest", inline: "nearest" });
+    }
+}
+
+function flash(el) {
+    el.classList.remove("is-flash");
+    void el.offsetWidth; // restart the animation when the same target is hit twice
+    el.classList.add("is-flash");
+    setTimeout(() => el.classList.remove("is-flash"), 1600);
+}
+
+function openStory(anchor, { focus = true } = {}) {
+    state.spec.story = anchor;
+    render();
+    const panel = els.detail.querySelector(".story-focus");
+    if (!panel) return;
+    panel.scrollIntoView({ block: "nearest", behavior: reducedMotion() ? "auto" : "smooth" });
+    if (focus) document.getElementById("story-panel-title")?.focus({ preventScroll: true });
+}
+
+function closeStory() {
+    const anchor = state.spec.story;
+    state.spec.story = null;
+    render();
+    const tile = anchor && document.getElementById(anchor);
+    if (tile) {
+        tile.scrollIntoView({ block: "nearest" });
+        tile.focus({ preventScroll: true });
+    }
+}
+
+function stepStory(delta) {
+    const f = displayedFeature();
+    const text = f && state.fileCache.get(`${f.name}/spec.md`);
+    if (!text || !state.spec.story) return;
+    const stories = parsedSpec(text).sections.filter((s) => s.kind === "stories").flatMap((s) => s.stories);
+    const index = stories.findIndex((s) => s.anchor === state.spec.story);
+    const next = stories[index + delta];
+    if (next) openStory(next.anchor);
+}
+
+function jumpTo(anchor) {
+    if (/^us-/.test(anchor)) {
+        openStory(anchor);
+        return;
+    }
+    let el = document.getElementById(anchor);
+    if (!el && state.spec.reqFilter !== "all") {
+        // The target is hidden by the requirement filter; clear it rather than fail silently.
+        state.spec.reqFilter = "all";
+        render();
+        el = document.getElementById(anchor);
+    }
+    if (!el) return;
+    const isSection = el.hasAttribute("data-spec-section");
+    const section = el.closest("[data-spec-section]");
+    const body = el.closest(".detail__body");
+    if (section && body) {
+        // Hold the nav on the target's section while the smooth scroll settles.
+        state.spec.spyHoldUntil = Date.now() + 900;
+        setNavCurrent(body, section.id);
+    }
+    el.scrollIntoView({ block: isSection ? "start" : "center", behavior: reducedMotion() ? "auto" : "smooth" });
+    if (!isSection) flash(el);
+}
+
 /**
  * Fetches a file's text into the cache. `force` re-reads a file we already hold,
  * which is what a state push needs so the viewer reflects an agent's edit.
  */
-async function loadFile(path, force) {
-    const f = currentFeature();
+async function loadFile(path, force, feature = currentFeature()) {
+    const f = feature;
     if (!f) return;
     const key = `${f.name}/${path}`;
     if (!force && state.fileCache.has(key)) return;
+    if (!force && (state.spec.loading.has(key) || state.spec.failed.has(key))) return;
+    state.spec.loading.add(key);
     try {
         const result = await api(`/api/file?feature=${encodeURIComponent(f.name)}&path=${encodeURIComponent(path)}`);
         state.fileCache.set(key, result.content);
-        if (state.openFile === path) render();
+        state.spec.failed.delete(key);
+        if (state.openFile === path || (path === "spec.md" && state.tab === "spec")) render();
     } catch (error) {
+        if (path === "spec.md") {
+            state.spec.failed.set(key, error.message);
+            if (state.tab === "spec") render();
+        }
         toast(error.message, "error");
+    } finally {
+        state.spec.loading.delete(key);
     }
 }
 
@@ -908,6 +1094,43 @@ els.detail.addEventListener("click", (event) => {
 
     if (target.closest("[data-constitution-close]")) {
         closeConstitution();
+        return;
+    }
+
+    const mode = target.closest("[data-spec-mode]");
+    if (mode) {
+        state.spec.mode = mode.dataset.specMode;
+        render();
+        return;
+    }
+
+    const step = target.closest("[data-story-step]");
+    if (step) {
+        stepStory(Number(step.dataset.storyStep));
+        return;
+    }
+
+    if (target.closest("[data-story-close]")) {
+        closeStory();
+        return;
+    }
+
+    const story = target.closest("[data-story]");
+    if (story) {
+        openStory(story.dataset.story);
+        return;
+    }
+
+    const xref = target.closest("[data-xref]");
+    if (xref) {
+        jumpTo(xref.dataset.xref);
+        return;
+    }
+
+    const reqFilter = target.closest("[data-req-filter]");
+    if (reqFilter) {
+        state.spec.reqFilter = reqFilter.dataset.reqFilter;
+        render();
         return;
     }
 
@@ -1016,6 +1239,7 @@ document.addEventListener("keydown", (event) => {
             state.menuOpen = false;
             render();
         }
+        else if (state.view === "feature" && state.tab === "spec" && state.spec.story) closeStory();
         else if (state.view === "constitution") closeConstitution();
         return;
     }
@@ -1037,6 +1261,12 @@ document.addEventListener("keydown", (event) => {
     }
 
     if (typing) return;
+
+    if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && state.view === "feature" && state.tab === "spec" && state.spec.story) {
+        event.preventDefault();
+        stepStory(event.key === "ArrowRight" ? 1 : -1);
+        return;
+    }
 
     if (event.key === "ArrowDown" || event.key === "ArrowUp" || event.key === "j" || event.key === "k") {
         const cards = [...els.list.querySelectorAll("[data-feature]")];
@@ -1065,16 +1295,20 @@ function applyState(data) {
 
     if (previous) {
         // Files may have changed underneath us, so drop cached text. The open
-        // file keeps its entry (no "Loading…" flash) and is re-read below.
+        // file (and spec.md while its reader is showing) keeps its entry so
+        // there's no "Loading…" flash, and is re-read below.
         const open = state.openFile ? `${state.selected}/${state.openFile}` : null;
+        const spec = state.tab === "spec" ? `${displayedFeature()?.name}/spec.md` : null;
         for (const key of [...state.fileCache.keys()]) {
-            if (key !== open) state.fileCache.delete(key);
+            if (key !== open && key !== spec) state.fileCache.delete(key);
         }
+        state.spec.failed.clear();
     }
 
     render();
     if (state.view === "constitution") void loadConstitution();
     if (previous && state.openFile) void loadFile(state.openFile, true);
+    if (previous && state.tab === "spec" && displayedFeature()) void loadFile("spec.md", true, displayedFeature());
 }
 
 async function load() {
@@ -1094,6 +1328,7 @@ function connect() {
             state.view = "feature";
             state.selected = feature;
             state.openFile = null;
+            state.spec.story = null;
             render();
         }
     });
@@ -1102,6 +1337,15 @@ function connect() {
         /* EventSource reconnects on its own */
     };
 }
+
+// Scroll doesn't bubble, so listen in the capture phase; the body element is replaced on every render.
+els.detail.addEventListener(
+    "scroll",
+    (event) => {
+        if (state.tab === "spec" && event.target.classList?.contains("detail__body")) updateScrollSpy(event.target);
+    },
+    true,
+);
 
 // Keep the "Synced Ns ago" label honest without re-rendering the whole board.
 setInterval(() => {

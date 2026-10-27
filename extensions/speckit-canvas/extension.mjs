@@ -183,7 +183,7 @@ function createRequestHandler(instance, session) {
             if (req.method === "GET" && (path === "/" || path === "/index.html")) {
                 return serveStatic(res, "index.html");
             }
-            if (req.method === "GET" && (path === "/styles.css" || path === "/app.js")) {
+            if (req.method === "GET" && ["/styles.css", "/app.js", "/spec-parser.js", "/spec-view.js"].includes(path)) {
                 return serveStatic(res, path.slice(1));
             }
             if (req.method === "GET" && path.startsWith("/assets/")) {

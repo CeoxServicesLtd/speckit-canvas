@@ -12,6 +12,7 @@ A GitHub Copilot canvas for browsing a repository's [spec-kit](https://github.co
 - **One-click dispatch** — run the next speckit agent (`speckit.specify`, `speckit.plan`, `speckit.implement`, …) from the canvas; the command is sent to your current Copilot session.
 - **Live updates** — watches `specs/` and `.specify/` and pushes state over Server-Sent Events, so the board reflects agent edits in real time.
 - **Artifact viewer** — read `spec.md`, `plan.md`, `tasks.md`, research, checklists, and contracts inline with rendered Markdown.
+- **Structured spec reader** — the Spec tab parses `spec.md` along the spec-kit template: user stories become browsable tiles grouped by priority with a focus panel (Given/When/Then scenarios, ←/→ to step, Esc to close), requirements and success criteria become filterable ID lists, and entities, edge cases, assumptions and clarification Q&A get their own views. A sticky section map, an open-questions strip, and clickable `FR-`/`SC-`/story cross-references make the file easy to navigate; a Markdown toggle shows the raw text.
 - **Repository constitution** — read `.specify/memory/constitution.md` from the sidebar's Repository section, separately from feature artifacts, even when there are no specs. The read-only view updates live and preserves your selected feature and tab.
 
 Everything shown is derived from files on disk — no invented metrics.
@@ -23,7 +24,7 @@ Everything shown is derived from files on disk — no invented metrics.
 - `assets/preview.png` — gallery preview image.
 - `extensions/speckit-canvas/extension.mjs` — loopback canvas server, API routes, SSE, file watching, and the session bridge.
 - `extensions/speckit-canvas/speckit.mjs` — the scanner: parses specs/tasks/checklists, derives status, health, phases, and attention items.
-- `extensions/speckit-canvas/public/` — the canvas UI (`index.html`, `styles.css`, `app.js`).
+- `extensions/speckit-canvas/public/` — the canvas UI (`index.html`, `styles.css`, `app.js`, plus `spec-parser.js` and `spec-view.js` for the structured spec reader).
 - `extensions/speckit-canvas/copilot-extension.json` — Copilot extension name/version metadata.
 - `extensions/speckit-canvas/package.json` — extension metadata for cataloging and packaging.
 

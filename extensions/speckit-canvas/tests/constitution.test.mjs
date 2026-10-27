@@ -5,6 +5,8 @@ import { join } from "node:path";
 import { test } from "node:test";
 import { runInNewContext } from "node:vm";
 import { readConstitutionFile, scanRepo } from "../speckit.mjs";
+import { parseSpec } from "../public/spec-parser.js";
+import { createSpecView } from "../public/spec-view.js";
 
 function repo(t) {
     const root = mkdtempSync(join(tmpdir(), "speckit-constitution-"));
@@ -57,7 +59,10 @@ function renderer(data, respond = async () => ({ content: "# Principles" })) {
         setTimeout() {},
         clearTimeout() {},
     };
-    const source = readFileSync(new URL("../public/app.js", import.meta.url), "utf-8");
+    context.__modules = { parseSpec, createSpecView };
+    // app.js is an ES module in the browser; vm scripts can't import, so bind its imports to injected globals.
+    const source = readFileSync(new URL("../public/app.js", import.meta.url), "utf-8")
+        .replace(/^import \{([^}]+)\} from "[^"]+";$/gm, "const {$1} = globalThis.__modules;");
     runInNewContext(`${source}\nglobalThis.app = { state, applyState, loadConstitution, closeConstitution, selectFeature };`, context);
     context.app.applyState(data);
     return { ...context.app, elements, requests, documentListeners, eventListeners };
