@@ -1,7 +1,7 @@
 {
   "name": "speckit-canvas",
   "description": "Browse spec-kit features, see each spec's pipeline status and attention items, and dispatch the next speckit agent from a Copilot canvas.",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "author": {
     "name": "Ceox Services Ltd",
     "url": "https://github.com/CeoxServicesLtd"
