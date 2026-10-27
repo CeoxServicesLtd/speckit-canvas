@@ -93,8 +93,8 @@ test("missing constitution returns null, but read failures are not disguised as 
 test("dedicated API serves only the fixed constitution path and reports missing files", async (t) => {
     const root = repo(t);
     writeConstitution(root, "# Repository principles");
-    const source = readFileSync(new URL("../extension.mjs", import.meta.url), "utf-8");
-    const handlerSource = source.slice(source.indexOf("function createRequestHandler("), source.indexOf("async function startInstance("));
+    const source = readFileSync(new URL("../server.mjs", import.meta.url), "utf-8");
+    const handlerSource = source.slice(source.indexOf("function createRequestHandler("), source.indexOf("export async function startServer("));
     const handler = runInNewContext(`${handlerSource}\ncreateRequestHandler({ repoRoot }, {})`, {
         repoRoot: root,
         URL,

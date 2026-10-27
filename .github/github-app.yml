@@ -1,0 +1,19 @@
+instructions: |
+  This repository is a GitHub Copilot app plugin that ships one canvas
+  extension in extensions/speckit-canvas (vanilla JS, no build step, Node 22+).
+  extension.mjs registers the canvas with the Copilot SDK; server.mjs is the
+  SDK-free loopback server; speckit.mjs scans specs/; public/ is the UI.
+  For manual verification run the "Run canvas" script: it serves a throwaway
+  copy of extensions/speckit-canvas/dev/demo-repo at http://127.0.0.1:4317/.
+  Keep plugin.json, .github/plugin/marketplace.json and
+  extensions/speckit-canvas/package.json versions in sync; tests enforce it.
+
+scripts:
+  - name: Run canvas
+    command: npm --prefix extensions/speckit-canvas run dev
+  - name: Test
+    command: npm --prefix extensions/speckit-canvas test
+
+# dev.mjs prints "Local: http://127.0.0.1:4317/"; capture the URL.
+server_ready_pattern: '(?i)Local:\s+(https?://\S+)'
+auto_open_in_browser: true

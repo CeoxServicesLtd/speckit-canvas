@@ -1325,6 +1325,10 @@ button {
     box-shadow: 0 6px 20px rgba(31, 35, 40, 0.24);
 }
 
+.toast[hidden] {
+    display: none;
+}
+
 .toast--error {
     background: var(--sk-red);
     color: var(--color-white, #ffffff);

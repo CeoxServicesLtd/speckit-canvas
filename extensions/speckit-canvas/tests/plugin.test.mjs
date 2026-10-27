@@ -40,7 +40,7 @@ test("plugin ships exactly one complete canvas extension with matching package v
     assert.equal(pkg.type, "module");
     assert.equal(pkg.main, "extension.mjs");
     for (const path of [
-        "copilot-extension.json", "speckit.mjs", join("public", "app.js"),
+        "copilot-extension.json", "speckit.mjs", "server.mjs", join("public", "app.js"),
         join("public", "spec-parser.js"), join("public", "spec-view.js"),
         join("public", "index.html"), join("public", "styles.css"), join("public", "assets", "ceox-logo.jpg"),
     ]) {

@@ -4,6 +4,10 @@ A GitHub Copilot canvas for browsing a repository's [spec-kit](https://github.co
 
 ![Spec-kit Canvas preview](assets/preview.png)
 
+The Spec tab reads `spec.md` as structured sections, here with a user story open in the focus panel:
+
+![Structured spec reader with a user story in focus](assets/spec-reader.png)
+
 ## What it does
 
 - **Feature board** — every folder under `specs/` as a card with live status, task progress, and attention counts.
@@ -21,8 +25,12 @@ Everything shown is derived from files on disk — no invented metrics.
 
 - `plugin.json` — plugin manifest used by the extension marketplace and website.
 - `.github/plugin/marketplace.json` — marketplace catalog for discovering and installing the plugin in Copilot.
-- `assets/preview.png` — gallery preview image.
-- `extensions/speckit-canvas/extension.mjs` — loopback canvas server, API routes, SSE, file watching, and the session bridge.
+- `assets/preview.png`, `assets/spec-reader.png` — gallery preview and structured spec reader screenshots.
+- `.github/github-app.yml` — Copilot app repository config: agent instructions plus **Run canvas** and **Test** scripts.
+- `extensions/speckit-canvas/extension.mjs` — Copilot SDK entry point: registers the canvas, its actions, and the session bridge.
+- `extensions/speckit-canvas/server.mjs` — SDK-free loopback server: API routes, static files, SSE, and file watching.
+- `extensions/speckit-canvas/dev.mjs` — standalone local runner for manual verification (see [Run locally](#run-locally)).
+- `extensions/speckit-canvas/dev/demo-repo/` — demo spec-kit repository used by the local runner.
 - `extensions/speckit-canvas/speckit.mjs` — the scanner: parses specs/tasks/checklists, derives status, health, phases, and attention items.
 - `extensions/speckit-canvas/public/` — the canvas UI (`index.html`, `styles.css`, `app.js`, plus `spec-parser.js` and `spec-view.js` for the structured spec reader).
 - `extensions/speckit-canvas/copilot-extension.json` — Copilot extension name/version metadata.
@@ -83,8 +91,27 @@ copilot --plugin-dir . plugin list
 Run the regression and packaging checks:
 
 ```powershell
-node --test extensions\speckit-canvas\tests\*.test.mjs
+npm --prefix extensions/speckit-canvas test
 ```
+
+### Run locally
+
+`dev.mjs` serves the canvas UI in an ordinary browser without the Copilot app or SDK (Node 22+, no `npm install` needed):
+
+```powershell
+npm --prefix extensions/speckit-canvas run dev
+# → Local: http://127.0.0.1:4317/
+```
+
+By default it serves a throwaway copy of `dev/demo-repo` (two features: one with open clarifications, stories, requirements and entities; one mid-implementation), so edits and "make active" writes never touch the committed fixture. Edit files in the printed temp folder to watch live updates. Agent dispatches print the prompt to the terminal instead of sending it to a session.
+
+Options: `--repo <path>` serves a real spec-kit repository instead (its `specs/` files are watched in place), `--port <n>` (default `PORT` or `4317`), `--host <addr>`. Example:
+
+```powershell
+node extensions/speckit-canvas/dev.mjs --repo C:\path\to\your-speckit-repo --port 4400
+```
+
+In the GitHub Copilot app, `.github/github-app.yml` exposes this as the **Run canvas** script (and **Test** for the suite). The app detects the `Local:` URL and opens it in the browser.
 
 ## Usage
 
