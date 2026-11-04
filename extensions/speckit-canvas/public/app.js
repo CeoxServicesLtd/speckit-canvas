@@ -1233,6 +1233,7 @@ els.toast.addEventListener("click", (event) => {
 });
 
 document.addEventListener("keydown", (event) => {
+    if (document.getElementById("update-dialog").open) return;
     if (event.key === "Escape") {
         if (!els.runner.hidden) closeRunner();
         else if (state.menuOpen) {

@@ -65,18 +65,17 @@ Use either the marketplace installation or the direct installation, not both.
 
 ## Updates and releases
 
-For a marketplace installation:
+The board checks GitHub's latest published stable release when opened and hourly while open. Its sidebar footer shows the running version, any available update, and a **Check for updates** button beside the Ceox logo. Checks are cached for an hour across panels; the button forces a fresh check. Pre-releases and draft releases are not offered. Network/API errors are shown in the sidebar and can be retried.
 
-```powershell
-copilot plugin marketplace update ceox-speckit
-copilot plugin update speckit-canvas@ceox-speckit
-```
+Choose **Update to v...**, then **Confirm update** to install only the displayed published release. **Not now** or Escape cancels without installing anything. Before installation, the updater rechecks that the release is still published and unchanged, fetches only its explicit Git tag (never a branch), and verifies that the plugin and extension manifests match that release's version. It then uses Copilot's local plugin installer and verifies the installed version matches exactly; a newer, unpublished version is not accepted. Network, download, manifest, and installation errors stop the update without falling back to the default branch.
 
-For a direct installation, use `copilot plugin update speckit-canvas`. Restart the app/session or reload extensions and reopen the board after an update.
+Copilot's `plugin update` command is deliberately not used: it follows the source's default branch rather than published releases. Release updates instead use a direct installation from a retained, release-pinned checkout under `COPILOT_HOME/release-cache/speckit-canvas/` (default `~/.copilot/release-cache/speckit-canvas/`). If the running copy was marketplace-installed, the confirmation explains that it will be replaced by a direct release installation and the marketplace copy disabled, not uninstalled, to avoid duplicate canvases. The marketplace remains registered. Subsequent board updates continue to use published releases only.
 
-The catalog's relative source tracks the repository's default branch. Publishing a GitHub release by itself does not deploy the plugin: commit and push the plugin files and version metadata to that branch first. For each release, keep `plugin.json`, `.github/plugin/marketplace.json` (catalog and plugin entry), and `extensions/speckit-canvas/package.json` versions in sync. The numeric `version` in `copilot-extension.json` is extension metadata, not the plugin's semantic release version.
+After an update, reload extensions or restart the app/session and reopen the board. The updater never restarts the app automatically or changes your specs. The standalone development server checks releases but does not install updates. Git and the Copilot CLI must be available on PATH. A missing, ambiguous, or unsupported managed installation produces an error rather than installing elsewhere.
 
-Copilot CLI supports opting a custom marketplace into session-start updates through `autoUpdate: true` on its `extraKnownMarketplaces` entry in user settings. This applies to interactive and `-p` sessions, not SDK/server sessions; do not assume the Copilot app automatically updates this plugin. Use the explicit update commands above when needed. See the [plugin reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference).
+Release tags must be stable semantic versions such as `v1.3.0` or `1.3.0`, with matching version metadata in the tagged commit. For each release, keep `plugin.json`, `.github/plugin/marketplace.json` (catalog and plugin entry), and `extensions/speckit-canvas/package.json` versions in sync before tagging and publishing the GitHub release. The numeric `version` in `copilot-extension.json` is extension metadata, not the plugin's semantic release version. A tag without a published GitHub release does not trigger an update. The check uses GitHub's public API without credentials and may be rate-limited.
+
+The initial marketplace/direct repository installation above follows the default branch; it is not the release updater. To stay release-only after installation, use the board's confirmed updates, do not manually run `copilot plugin update` against the repository/marketplace source, and do not opt `ceox-speckit` into Copilot CLI's separate session-start `autoUpdate` setting. See the [plugin reference](https://docs.github.com/en/copilot/reference/copilot-cli-reference/cli-plugin-reference).
 
 ## Plugin packaging and development
 
@@ -116,6 +115,8 @@ In the GitHub Copilot app, `.github/github-app.yml` exposes this as the **Run ca
 ## Usage
 
 Open the canvas in a repository that uses spec-kit (a `specs/` directory and `.specify/` config). The board scans automatically. Select a feature to inspect it, then use the primary action button (or the Actions menu) to dispatch the next agent. Keyboard: `j`/`k` or arrow keys move between features, `/` focuses search, `Ctrl+Enter` runs the agent, `Esc` closes dialogs.
+
+Use **New feature spec** immediately below the discovered features in the sidebar to start a new spec. It scrolls with the feature list; the repository section and version/update footer remain at the bottom.
 
 Select **Constitution** under **Repository** in the sidebar to view the global project principles. Use **Back to features** (or `Esc`) to return to the feature view. If the constitution is absent, the viewer shows its expected location rather than adding it to a feature's artifacts.
 
