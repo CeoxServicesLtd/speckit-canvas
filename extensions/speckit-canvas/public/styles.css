@@ -230,13 +230,21 @@ button {
 
 /* ----------------------------------------------------------- feature list */
 
-.feature-list {
+.sidebar__features {
     flex: 1;
     min-height: 0;
+    overflow-y: auto;
+}
+
+.feature-list {
     margin: 0;
     padding: 8px;
-    overflow-y: auto;
     list-style: none;
+}
+
+.sidebar__features .sidebar__new-feature {
+    margin: 0 16px 14px;
+    color: var(--sk-blue);
 }
 
 .feature-card {
@@ -359,6 +367,7 @@ button {
 }
 
 .sidebar__global {
+    flex-shrink: 0;
     display: flex;
     flex-direction: column;
     gap: 6px;
@@ -377,6 +386,7 @@ button {
 
 .sidebar__foot {
     display: flex;
+    flex-shrink: 0;
     align-items: center;
     justify-content: space-between;
     gap: 12px;
@@ -384,7 +394,44 @@ button {
     border-top: 1px solid var(--sk-border);
 }
 
+.sidebar__updates {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    color: var(--sk-muted);
+    font-size: var(--text-body-small, 12px);
+    overflow-wrap: anywhere;
+}
+
+.sidebar__updates [hidden] {
+    display: none;
+}
+
+.update-dialog {
+    max-width: min(460px, calc(100vw - 32px));
+    padding: 24px;
+    border: 1px solid var(--sk-border);
+    border-radius: 12px;
+    background: var(--sk-bg);
+    color: var(--sk-fg);
+}
+
+.update-dialog::backdrop {
+    background: rgb(0 0 0 / 45%);
+}
+
+.update-dialog__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+}
+
 .sidebar__logo {
+    flex-shrink: 0;
     height: 18px;
     width: auto;
     opacity: 0.75;

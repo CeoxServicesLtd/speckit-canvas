@@ -31,7 +31,13 @@
 
                 <section class="rollup" id="rollup" aria-label="Portfolio summary"></section>
 
-                <ul class="feature-list" id="feature-list"></ul>
+                <div class="sidebar__features">
+                    <ul class="feature-list" id="feature-list"></ul>
+                    <button class="link-btn sidebar__new-feature" id="new-feature" type="button">
+                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" /></svg>
+                        New feature spec
+                    </button>
+                </div>
 
                 <div class="sidebar__global">
                     <span class="sidebar__title">Repository</span>
@@ -41,10 +47,11 @@
                 </div>
 
                 <div class="sidebar__foot">
-                    <button class="link-btn" id="new-feature" type="button">
-                        <svg viewBox="0 0 16 16" aria-hidden="true"><path d="M8 3.5v9M3.5 8h9" /></svg>
-                        New feature spec
-                    </button>
+                    <section class="sidebar__updates" aria-label="Plugin updates">
+                        <span id="update-status" role="status" aria-live="polite">Checking for updates...</span>
+                        <button class="link-btn" id="update-check" type="button">Check for updates</button>
+                        <button class="btn" id="update-install" type="button" hidden>Update plugin</button>
+                    </section>
                     <img class="sidebar__logo" src="/assets/ceox-logo.jpg" alt="Ceox" />
                 </div>
             </aside>
@@ -72,8 +79,18 @@
             </div>
         </div>
 
+        <dialog class="update-dialog" id="update-dialog" aria-labelledby="update-title" aria-describedby="update-description">
+            <h2 id="update-title">Update Spec-kit Canvas?</h2>
+            <p id="update-description"></p>
+            <div class="update-dialog__actions">
+                <button class="btn" id="update-cancel" type="button">Not now</button>
+                <button class="btn btn--primary" id="update-confirm" type="button">Confirm update</button>
+            </div>
+        </dialog>
+
         <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
         <script src="/app.js" type="module"></script>
+        <script src="/updates.js" type="module"></script>
     </body>
 </html>

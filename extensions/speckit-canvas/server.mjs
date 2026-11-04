@@ -11,6 +11,7 @@ import { fileURLToPath } from "node:url";
 import { homedir } from "node:os";
 
 import { readConstitutionFile, readFeatureFile, scanRepo, setActiveFeature } from "./speckit.mjs";
+import { createUpdater } from "./updates.mjs";
 
 const EXTENSION_DIR = dirname(fileURLToPath(import.meta.url));
 const PUBLIC_DIR = join(EXTENSION_DIR, "public");
@@ -176,13 +177,29 @@ function createRequestHandler(instance, session) {
             if (req.method === "GET" && (path === "/" || path === "/index.html")) {
                 return serveStatic(res, "index.html");
             }
-            if (req.method === "GET" && ["/styles.css", "/app.js", "/spec-parser.js", "/spec-view.js"].includes(path)) {
+            if (req.method === "GET" && ["/styles.css", "/app.js", "/spec-parser.js", "/spec-view.js", "/updates.js"].includes(path)) {
                 return serveStatic(res, path.slice(1));
             }
             if (req.method === "GET" && path.startsWith("/assets/")) {
                 // Serve only a bare filename from the assets folder (no traversal).
                 const name = path.slice("/assets/".length);
                 if (/^[\w.-]+$/.test(name)) return serveStatic(res, join("assets", name));
+            }
+
+            if (path === "/api/updates" && req.method === "GET") {
+                return sendJson(res, 200, await instance.updater.check());
+            }
+
+            if (req.method === "POST" && ["/api/updates/check", "/api/updates/install"].includes(path)) {
+                const origin = new URL(instance.url);
+                if (req.headers.host !== origin.host || req.headers["x-speckit-update"] !== "1" ||
+                    (req.headers.origin && req.headers.origin !== origin.origin)) {
+                    return sendJson(res, 403, { error: "Update requests must originate from this board." });
+                }
+                const result = path.endsWith("/check")
+                    ? await instance.updater.check(true)
+                    : await instance.updater.update(await readBody(req));
+                return sendJson(res, 200, result);
             }
 
             if (req.method === "GET" && path === "/api/state") {
@@ -277,8 +294,8 @@ function createRequestHandler(instance, session) {
  * Start a server for one repo. `session` needs `send({ prompt })` and
  * `log(message, options)`. Pass `port: 0` for an ephemeral port.
  */
-export async function startServer(repoRoot, session, { host = "127.0.0.1", port = 0 } = {}) {
-    const instance = { repoRoot, clients: new Set(), requestedFeature: null };
+export async function startServer(repoRoot, session, { host = "127.0.0.1", port = 0, updater = createUpdater() } = {}) {
+    const instance = { repoRoot, clients: new Set(), requestedFeature: null, updater };
     const server = createServer(createRequestHandler(instance, session));
     await new Promise((resolve, reject) => {
         server.once("error", reject);

@@ -12,11 +12,13 @@
 import { joinSession, createCanvas, CanvasError } from "@github/copilot-sdk/extension";
 import { findRepoRoot, scanRepo, setActiveFeature } from "./speckit.mjs";
 import { broadcast, pushState, readPrefs, rememberSelection, startServer, stopServer } from "./server.mjs";
+import { createUpdater } from "./updates.mjs";
 
 const instances = new Map(); // instanceId -> { server, url, repoRoot, clients, ... }
+const updater = createUpdater({ allowUpdate: true });
 
 async function startInstance(instanceId, repoRoot, session) {
-    const instance = await startServer(repoRoot, session);
+    const instance = await startServer(repoRoot, session, { updater });
     instances.set(instanceId, instance);
     return instance;
 }
